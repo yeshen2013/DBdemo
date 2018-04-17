@@ -1,5 +1,7 @@
 package com.lyyexample.aspect;
 
+import com.alibaba.fastjson.JSON;
+import com.lyyexample.common.ResponseModel;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -22,6 +24,15 @@ public class ControllerAspect {
 
     @Around("@annotation(org.springframework.web.bind.annotation.GetMapping)")
     public Object aroundGetMethod(ProceedingJoinPoint jp) throws Throwable {
+        return process(jp);
+    }
+
+    @Around("@annotation(org.springframework.web.bind.annotation.PostMapping)")
+    public Object aroundPostMethod(ProceedingJoinPoint jp) throws Throwable {
+        return process(jp);
+    }
+
+    private Object process(ProceedingJoinPoint jp) throws Throwable {
         long start = System.currentTimeMillis();
         ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
         HttpServletRequest request = attributes.getRequest();
@@ -30,17 +41,15 @@ public class ControllerAspect {
         String method = request.getMethod();
         String IP = request.getRemoteAddr();
         String user = request.getRequestedSessionId();
-        System.out.println(IP+"   "+user+"   "+method+"   "+URI);
-        Object o = jp.proceed();
+        logger.info(IP+"\t"+user+"\t"+method+"\t"+URI+"\n with inputs"+ JSON.toJSONString(jp.getArgs()));
+        Object obj = jp.proceed();
         long end = System.currentTimeMillis();
         long time = end - start;
-        System.out.println(time);
-        return o;
+        if(obj != null && obj instanceof ResponseModel){
+            ResponseModel<?> res = (ResponseModel<?>) obj;
+            logger.info("result code:"+res.getRetCode()+"\t result message:"+res.getRetMsg()+"\t use "+time+"ms");
+        }
+        return obj;
     }
 
-    @Around("@annotation(org.springframework.web.bind.annotation.PostMapping)")
-    public Object aroundPostMethod(ProceedingJoinPoint jp) throws Throwable {
-        Object o = jp.proceed();
-        return o;
-    }
 }
